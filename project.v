@@ -1,5 +1,5 @@
 /* This is a project developed for ECE241 at the University of Toronto */
-/* By: Noah Monti & Kyle Saboto */
+/* By: Noah Monti & Kyle Sabado */
 /* 11/18/2023 */
 
 module project(CLOCK_50, SW, LEDR, HEX0, HEX1, HEX2, HEX3, HEX4, HEX5, KEY);
