@@ -1,11 +1,23 @@
 module control #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) ();
 
 	
-	reg [5:0] current_state, next_state;
+	reg [5:0] current_state, next_state, prev_state;
+	go;
 
-    localparam	Default = 3'd0,
-					Sleeping = 3'd1,
-					Increase_Age = 3'd2,
+    localparam	Start = 5'd0,
+		Default = 5'd1,
+		Sleeping = 5'd2,
+		Increase_Age = 5'd3,
+		Calc_Stats = 5'd4,
+		Hunger = 5'd5,
+		Bored = 5'd6,
+		Dirty = 5'd7,
+		Sick = 5'd8,
+		Dying = 5'd9,
+		Dead = 5'd10,
+		User_End = 5'd11,
+		User_End_Confirm = 5'd12,
+		Game_End = 5'd13;
 					
 	 
 	 
@@ -14,7 +26,15 @@ module control #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) (
     begin: state_table
             case (current_state)
             
-            default: next_state = 
+		Start: next_state = go ? Default : Start;
+		
+		Default: if (sleep)
+				next_state = sleep;
+			else if ()
+
+
+
+            default: next_state = Start;
         endcase
     end // state_table
 
