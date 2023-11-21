@@ -1,0 +1,5 @@
+module control #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) ();
+
+	
+
+endmodule // control
