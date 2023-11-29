@@ -12,7 +12,7 @@ module control #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) (
 	output reg moveOut; // want to animate something
 	output reg draw_start, draw_bg, draw_pet, draw_age, draw_zs, draw_hunger, draw_bored, draw_dirty, draw_sick;
 	output reg draw_dying, draw_end;
-	output reg draw_food. draw_ball, draw_broom, draw_pills, draw_firstAid;
+	output reg draw_food, draw_ball, draw_broom, draw_pills, draw_firstAid;
 
 
     localparam	Start = 6'd0, // Start the program, then draw the BG, pet, and age
@@ -100,7 +100,7 @@ module control #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) (
 					next_state = Default_State;
 				
 
-			Hunger: next_state = Draw_Hunger;
+			Hungry: next_state = Draw_Hunger;
 
 			Draw_Hunger: next_state = bubbleDrawn ? Hunger_Wait : Draw_Hunger; // if the bubble is drawn, go to calc stats
 			
