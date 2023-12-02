@@ -1,29 +1,45 @@
-module datapath #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) ();
+module datapath #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) (
+	clk, resetn, foodGiven, ballGiven, broomGiven, pillsGiven, firstAidGiven, draw_bg, draw_start, draw_end, draw_pet, draw_zs, draw_food,
+	draw_ball, draw_broom, draw_pills, draw_firstAid, draw_hunger, draw_bored, draw_dirty, draw_sick, draw_dying,
+	hungry, bored, sick, dirty, dying, deceased, sleeping, age);
 
-	input clk;
+	
+	// Inputs
+	input clk, resetn;
 	
 	input foodGiven, ballGiven, broomGiven, pillsGiven, firstAidGiven;
 	input draw_bg, draw_start, draw_end, draw_pet, draw_zs, draw_food, draw_ball, draw_broom, draw_pills, draw_firstAid, draw_hunger;
 	input draw_bored, draw_dirty, draw_sick, draw_dying;
 	
+	// Outputs
+	output reg hungry, bored, sick, dirty, dying, deceased, sleeping, age;
 	
-	
+	//CONTROLS
+	/*
+	SW[0] --> give food
+	SW[1] --> give ball
+	SW[2] --> give pills
+	SW[3] --> give broom
+	SW[4] --> give first aid
+	KEY[2] --> exectute move
+	*/
 	
 	localparam maxLifeSpan = 9'd330,
 		clockCycles = 26'h2FAF07F,
+		testClockCycles = 16'b1100001101010000, //for model sim testing
 		hungerFreq = 5'd15,
 		boredFreq = 5'd20,
 		dirtyFreq = 5'd25,
 		sickFreq = 5'd30,
 		objStartX = 8'd50,
 		objStartY = 7'd100,
-		sleepingFreq = 7'h42,
+		broomStartX = 8'd50, //change broom position later
+		broomStartY = 7'd100, 
+		sleepingFreq = 8'd45,
+		sleepingTime = 3'd5,
 		dyingToDeadFreq = 3'd4,
 		stateToDyingFreq = 3'd4;
-	
-	
-	reg [8:0] actualLifeSpan; // how many seconds the pet will actually live for
-	
+		
 	reg [8:0] lifeCounter;
 	
 	reg [25:0] everyCycleCtr; // counts up to 49.9M
@@ -34,19 +50,19 @@ module datapath #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) 
 	
 	reg [6:0] ball_y;
 	
+	reg [7:0] broom_x;
+	
+	reg [6:0] broom_y;
+	
 	reg localHungry, localBored, localDirty, localSick, localDying;
 	
-	reg [2:0] hungertoDyingCtr;
+	//counters
+	reg [2:0] hungrytoDyingCtr;
 	reg [2:0] boredtoDyingCtr;
 	reg [2:0] dirtytoDyingCtr;
 	reg [2:0] sicktoDyingCtr;
 	reg [2:0] dyingtoDeadCtr;
-	
-	// Outputs
-	
-	output reg hungry, bored, sick, dirty, dying, deceased;
-	output 
-	
+	reg [2:0] sleepCtr;
 	
 	// ***Modules of Sprites*** \\
 	
@@ -63,7 +79,7 @@ module datapath #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) 
 	sprite_ram_module #(.WIDTH_X(), .WIDTH_Y(), .RESOLUTION_X(), .RESOLUTION_Y(), .MIF_FILE()) pet (.clk(), .x(), .y(), .colour_out());
 	
 	// Z's \\
-	sprite_ram_module #(.WIDTH_X(), .WIDTH_Y(), .RESOLUTION_X(), .RESOLUTION_Y(), .MIF_FILE()) zeds (.clk(), .x(), .y(), .colour_out());
+	sprite_ram_module #(.WIDTH_X(), .WIDTH_Y(), .RESOLUTION_X(), .RESOLUTION_Y(), .MIF_FILE()) zzz (.clk(), .x(), .y(), .colour_out());
 	
 	// Food \\
 	sprite_ram_module #(.WIDTH_X(), .WIDTH_Y(), .RESOLUTION_X(), .RESOLUTION_Y(), .MIF_FILE()) food (.clk(), .x(), .y(), .colour_out());
@@ -107,41 +123,55 @@ module datapath #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) 
 	
 	//***************\\
 	
-	always@(posedge clk) begin
-		
+	always@(posedge clk) 
+	begin	
 		if (!resetn) begin
 			deceased <= 0;
-			actualLifeSpan <= maxLifeSpan;
 			lifeCounter <= 0;
 			everyCycleCtr <= 0;
+			//position of food, pills, first aid
 			obj_x <= objStartX;
 			obj_y <= objStartY;
+			//ball position
 			ball_y <= objStartY;
+			//broom position
+			broom_x <= broomStartX;
+			broom_y <= broomStartY;
 			hungrytoDyingCtr <= 0;
 			boredtoDyingCtr <= 0;
 			dirtytoDyingCtr <= 0;
 			sicktoDyingCtr <= 0;
+			dyingtoDeadCtr <= 0;
+			age <= 0;
+			sleepCtr <= 0;
+			sleeping <= 0;
 		end
 		
 		// Life Counters
-		
-		if (lifeCounter == actualLifeSpan) begin // this is the death condition
+		if (lifeCounter == maxLifeSpan) begin // this is the death condition
 			deceased <= 1;
 		end
-		else if (everyCycleCtr < clockCycles) begin // increment this on every clock cycle
+		else if (everyCycleCtr < testClockCycles) begin // increment this on every clock cycle
 			everyCycleCtr <= everyCycleCtr + 1;
 		end
-		else if (everyCycleCtr == clockCycles) begin // increment this once per second
-			lifeCounter <= lifeCounter + 1;
+		else if (everyCycleCtr == testClockCycles) begin // increment this once per second
 			everyCycleCtr <= 0;
+			lifeCounter <= lifeCounter + 1;
 		end
-		else begin
-		//
-		end
-		
-		// Sleep Enable
-		if (actualLifeSpan % sleepingFreq) begin
-			
+
+		//Sleep Enable
+		if(lifeCounter % sleepingFreq == 0) begin
+			sleeping <= 1;
+			sleepCtr <= 0;
+		if(sleeping) begin
+			if(everyCycleCtr == testClockCycles) begin
+				sleepCtr <= sleepCtr + 1;
+			end
+			if(sleepCtr == sleepingTime)begin
+				sleeping <= 0;
+				sleepCtr <= 0;
+				age <= age + 1;
+			end
 		end
 		
 		// Hungry enable
@@ -162,8 +192,6 @@ module datapath #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) 
 			end
 		end
 		
-		
-		
 		// Bored enable
 		if (ballGiven) begin
 			localBored <= 0;
@@ -181,8 +209,6 @@ module datapath #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) 
 				boredtoDyingCtr <= boredtoDyingCtr + 1;
 			end
 		end
-
-		
 		
 		// Dirty enable
 		if (broomGiven) begin
@@ -203,14 +229,13 @@ module datapath #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) 
 		end
 		
 		
-		
 		// Sick enable
 		if (pillsGiven) begin
 			localSick <= 0;
 			sicktoDyingCtr <= 0;
 		end
 		else if (lifeCounter % sickFreq == 0) begin
-			localSick;
+			localSick <= 1; 
 		end
 		else begin
 			localSick <= 0;
@@ -221,8 +246,6 @@ module datapath #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) 
 				sicktoDyingCtr <= sicktoDyingCtr + 1;
 			end
 		end
-		
-		
 		
 		// Dying enable
 		if (hungrytoDyingCtr == stateToDyingFreq || boredtoDyingCtr == stateToDyingFreq || dirtytoDyingCtr == stateToDyingFreq || sicktoDyingCtr == stateToDyingFreq) begin
@@ -242,9 +265,7 @@ module datapath #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) 
 		
 		if (dyingtoDeadCtr == dyingToDeadFreq) begin
 			deceased <= 1;
-		end
-			
-		
+		end	
 		
 		// Assignments to outputs
 		
@@ -282,16 +303,8 @@ module datapath #(parameter X_SCREEN_PIXELS = 8'd160, Y_SCREEN_PIXELS = 7'd120) 
 		else begin
 			bored <= 0;
 		end
-		
-	end // always@
-	
-	
-	
-	
-	
-	
-	
-	
-
-
+		end //end always@
+	end
 endmodule
+
+
