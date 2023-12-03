@@ -10,6 +10,7 @@ module control (
 	 dirty_enable,
 	 dying_enable,
 	 zzzs_enable,
+	 dead_enable,
 	 
 	 foodGiven,
 	 ballGiven,
@@ -42,7 +43,7 @@ module control (
 	 input hunger_enable, bored_enable, sick_enable, dirty_enable, dying_enable, zzzs_enable;
 
     output reg draw_start_s, draw_bg_s, draw_hunger_bubble_s, draw_bored_bubble_s, draw_sick_bubble_s, draw_dirty_bubble_s, draw_dying_bubble_s, draw_zzzs_s;
-	 output reg draw_food_s, draw_pills_s, draw_first_aid_s, draw_broom_s, draw_ball_s;
+	 output reg draw_food_s, draw_pills_s, draw_first_aid_s, draw_broom_s, draw_ball_s, draw_dead_s;
     output reg move_objects_s;
 
     output reg [4:0] current_state;
@@ -77,6 +78,9 @@ module control (
 					 DRAW_ZZZS = 22,
 					 WAIT_ZZZS = 23,
 					 PLAY_HUNGRY_AUDIO = 24;
+					 WAIT_DEAD = 25;
+					 DRAW_DEAD = 26;
+					 
 						
     // State table.
     always @ (*) begin
@@ -92,6 +96,9 @@ module control (
 					if (plot_done) begin
 						if(itemGiven) begin
 							next_state = WAIT_OBJ;
+						end
+						else if(dead_enable) begin
+							next_state = WAIT_DEAD;
 						end
 						else if (hunger_enable) begin
 							next_state = WAIT_HUNGER_BUBBLE;	
@@ -116,6 +123,10 @@ module control (
 						next_state = DRAW_BG;
 					end
 				end
+				WAIT_DEAD:
+					next_state = go ? DRAW_DEAD : WAIT_DEAD;
+				DRAW_DEAD:
+					next_state = reset ? WAIT_START : DRAW_DEAD; 
             WAIT_HUNGER_BUBBLE:
 					next_state = go ? DRAW_HUNGER_BUBBLE : WAIT_HUNGER_BUBBLE;
 				DRAW_HUNGER_BUBBLE:
@@ -231,6 +242,9 @@ module control (
 				DRAW_BG: begin
                 draw_bg_s = 1;
             end
+				DRAW_DEAD: begin
+					draw_dead_s = 1;
+				end
 				DRAW_HUNGER_BUBBLE: begin
 					draw_hunger_bubble_s = 1;
 				end
