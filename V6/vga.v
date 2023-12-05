@@ -1,5 +1,7 @@
+//***********************************************************************
 // Modules from Michael Zwong and David Weitzenfeld's Verifrogger project
 // https://github.com/michaelzwong/verifrogger
+//***********************************************************************
 
 module sprite_ram_module (
     clk,
