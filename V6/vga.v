@@ -1,5 +1,5 @@
 //***********************************************************************
-// Modules from Michael Zwong and David Weitzenfeld's Verifrogger project
+// Modules from Michael Wong and David Weitzenfeld's Verifrogger project
 // https://github.com/michaelzwong/verifrogger
 //***********************************************************************
 
